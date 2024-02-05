@@ -1,3 +1,4 @@
+import ast
 import json
 import threading
 from collections import OrderedDict
@@ -15,7 +16,7 @@ class DictionaryLoader:
         self.dictionary_path = dictionary_path
         self.cache_size = cache_size
         self.cache = OrderedDict()  # Cache for frequently accessed dictionary entries
-        self.missing_log_path = 'missing_words.txt'  # File to log missing words/prefixes
+        self.missing_log_path = missing_log_path  # File to log missing words/prefixes
         self.missing_log_lock = threading.Lock()
     
     def load_dictionary_entry(self, prefix):
@@ -36,7 +37,7 @@ class DictionaryLoader:
             for line in file:
                 entry = json.loads(line)
                 if prefix in entry:
-                    dictionary_entry = entry[prefix]
+                    dictionary_entry = ast.literal_eval(entry[prefix])
                     self.cache_dictionary_entry(prefix, dictionary_entry)  # Cache the found entry
                     break
         
@@ -76,7 +77,6 @@ class DictionaryLoader:
             with open(self.missing_log_path, 'a') as log_file:
                 log_file.write(f"{word_or_prefix}\n")
 
-    
     def get_translated_word(self, word):
         """
         Translates a word using the dictionary, leveraging cached entries for efficiency
@@ -85,30 +85,17 @@ class DictionaryLoader:
         :param word: The word to translate.
         :return: The translated word or the original word if a translation is not found.
         """
-        prefix = word[:4]
-        # Check if the prefix dictionary entry is in the cache
+        prefix = word.strip()[:4] if len(word)>4 else word.strip()
         if prefix in self.cache:
             prefix_dict = self.cache[prefix]
-            # Check if the word is in the prefix dictionary
-            if word in prefix_dict:
-                return prefix_dict[word]
-            else:
-                self.log_missing_word_or_prefix(word)
+            return prefix_dict
         else:
-            # Attempt to load the dictionary entry for the prefix if not in cache
             prefix_dict = self.load_dictionary_entry(prefix)
             if prefix_dict is not None:
-                # If the word is in the newly loaded prefix dictionary
-                if word in prefix_dict:
-                    return prefix_dict[word]
-                else:
-                    self.log_missing_word_or_prefix(word)
-            else:
-                # Prefix not found in the dictionary
-                self.log_missing_word_or_prefix(prefix)
-        
-        # Return the original word if no translation is found
+                return prefix_dict
+            self.log_missing_word_or_prefix(word)
         return word
+    
 
     
     def preload_cache(self, prefixes):
@@ -118,3 +105,7 @@ class DictionaryLoader:
         :param prefixes: A list of prefixes to preload into the cache.
         """
         pass
+
+if __name__=='__main__':
+    dl=DictionaryLoader('../data/tam.json')
+    print(type(dl.get_translated_word('தெரி')))
