@@ -1,7 +1,6 @@
-from dictionary_loader import DictionaryLoader 
 import re
+import ast
 import regex
-
 
 class WordReplacer:
     def __init__(self, dictionary_loader):
@@ -11,6 +10,19 @@ class WordReplacer:
         :param dictionary_loader: An instance of DictionaryLoader.
         """
         self.dictionary_loader = dictionary_loader
+
+        self.script_pattern= {
+            'Bengali': r'\u0980-\u09FF',
+            'Devanagari': r'\u0900-\u097F',
+            'Gujarati': r'\u0A80-\u0AFF',
+            'Gurmukhi': r'\u0A00-\u0A7F',
+            'Kannada': r'\u0C80-\u0CFF',
+            'Malayalam': r'\u0D00-\u0D7F',
+            'Oriya': r'\u0B00-\u0B7F',
+            'Tamil': r'\u0B80-\u0BFF',
+            'Telugu': r'\u0C00-\u0C7F',
+            'English': r'a-zA-Z'
+            }
 
     @staticmethod
     def remove_english_words(s):
@@ -24,6 +36,17 @@ class WordReplacer:
         pattern = r'[\p{Z}\p{P}\p{S}\p{N}]+'
         words=[word.strip() for word in regex.split(pattern, text) if WordReplacer.remove_english_words(word)]
         return words
+    
+    @staticmethod
+    def merge_dictionaries(d1, d2):
+        d3 = {}
+        
+        for key1, value1 in d1.items():
+            for key2, value2 in d2.items():
+                if value1 == value2:
+                    d3[key1] = key2
+                    break  # Break the inner loop once the matching value is found
+        return d3
     
     @staticmethod
     def replace_words_with_symbols(text, replacements):
@@ -49,13 +72,34 @@ class WordReplacer:
             return {'':''}
         
         return sorted_filtered_dict
-        
+    
     @staticmethod
-    def multiple_replace(replacements, text):
-        # Add trailing spaces to each key in the dictionary
-        # spaced_replacements = {f" {key} ": f" {value} " for key, value in replacements.items()}
-        text_list=WordReplacer.split_non_romanized_string(text)
-        new_replacements=WordReplacer.filter_and_sort_dict(text_list,replacements)
+    def extract_and_clean_mixed_script_words(text, script_ranges):
+        # Extract potential mixed-script words using the previously defined logic
+        potential_mixed_words = re.findall(rf'[\w{"".join(script_ranges.values())}]+', text)
+        
+        # Initialize a dictionary to store mixed words and their cleaned English versions
+        cleaned_words = {}
+        
+        # Filter for mixed-script words and clean them
+        for word in potential_mixed_words:
+            if any(re.search(f'[{range}]', word) for name, range in script_ranges.items() if name != 'English') and re.search('[a-zA-Z]', word):
+                # Clean the word by removing non-English characters
+                cleaned_word = re.sub(r'[^a-zA-Z]', '', word)
+                # Add the original mixed word and its cleaned version to the dictionary
+                cleaned_words[word] = cleaned_word
+        
+        return cleaned_words
+
+
+    @staticmethod
+    def multiple_replace(replacements, text,mode):
+
+        if mode.lower()=='correction':
+            new_replacements=replacements
+        if mode.lower()=='normal':
+            text_list=WordReplacer.split_non_romanized_string(text)
+            new_replacements=WordReplacer.filter_and_sort_dict(text_list,replacements)
         
         # Create a regular expression from the dictionary keys with spaces
         regex = re.compile("(%s)" % "|".join(map(re.escape, new_replacements.keys())))
@@ -67,19 +111,86 @@ class WordReplacer:
         text=WordReplacer.replace_words_with_symbols(text,new_replacements)
         
         return text
+    
+
+    def replace_mixed_words(self, replacements, text):
+        try:
+            # Attempt to extract and clean mixed-script words
+            try:
+                mixed_word_dict = self.extract_and_clean_mixed_script_words(text, self.script_pattern)
+            except Exception as e:
+                raise ValueError(f"Error extracting/cleaning mixed-script words: {e}")
+            
+            # Proceed only if mixed_word_dict is not empty
+            if mixed_word_dict:
+                try:
+                    correction_dict = self.merge_dictionaries(mixed_word_dict, replacements)
+                except Exception as e:
+                    raise ValueError(f"Error merging dictionaries: {e}")
+                
+                # Perform replacements if correction_dict is not empty
+                if correction_dict:
+                    try:
+                        return self.multiple_replace(correction_dict, text, mode='correction')
+                    except Exception as e:
+                        raise ValueError(f"Error performing replacements: {e}")
+            
+            # Return the original text if no replacements were made
+            return text
+        except Exception as e:
+            # Handle unexpected errors
+            print(f"An unexpected error occurred during replace_mixed_words: {e}")
+            # Optionally, return the original text or handle the error as appropriate
+            return text
 
 
     def get_dict(self,word):
         translated_word = self.dictionary_loader.get_translated_word(word)
         return translated_word
     
-    def replace_chunks(self,chunk):
-        unique_words=list(set(WordReplacer.split_non_romanized_string(chunk)))
-        for word in unique_words:
-            dct=self.get_dict(word)
-            if isinstance(dct,dict) :
-                chunk=WordReplacer.multiple_replace(dct,chunk)
-        return chunk
+    def replace_chunks(self, chunk):
+        try:
+            # Check if chunk is a list and convert to string if necessary
+            if isinstance(chunk, list):
+                chunk = str(chunk)
+            
+            # Generate a list of unique words
+            try:
+                unique_words = list(set(self.split_non_romanized_string(chunk)))
+            except Exception as e:
+                raise ValueError(f"Error splitting chunk into words: {e}")
+            
+            # Iterate over unique words for replacements
+            for word in unique_words:
+                try:
+                    dct = self.get_dict(word)
+                except KeyError:
+                    continue  # Skip words not found in the dictionary
+                except Exception as e:
+                    raise ValueError(f"Error retrieving dictionary for word '{word}': {e}")
+                
+                if isinstance(dct, dict):
+                    try:
+                        chunk = self.multiple_replace(dct, chunk, mode='normal')
+                        chunk = self.replace_mixed_words(dct, chunk)
+                    except Exception as e:
+                        raise ValueError(f"Error replacing words in chunk: {e}")
+            
+            # Convert chunk back to its original format if applicable
+            try:
+                if isinstance(chunk, (str, dict)):
+                    chunk = ast.literal_eval(chunk)
+            except ValueError as e:
+                raise ValueError(f"Error converting chunk back to original format: {e}")
+            except SyntaxError as e:
+                raise SyntaxError(f"Invalid syntax in chunk for literal evaluation: {e}")
+            
+            return chunk
+        except Exception as e:
+            # Handle unexpected errors
+            print(f"An unexpected error occurred: {e}")
+            # Optionally, return the original chunk or handle the error as appropriate
+            return chunk
 
 if __name__=='__main__':
     pass

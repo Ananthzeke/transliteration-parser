@@ -76,26 +76,39 @@ def transliterate_using_hugging_face(input_path,src_lang,batch_size,cache_dir):
     return ds
 
 if __name__=='__main__':
-    input_path=...
-    src_lang=...
-    batch_size=...
-    cache_dir=...
-    output_path=...
-    file_name=...
-    os.makedirs(output_path,exist_ok=True)
+if __name__ == '__main__':
+    # Initialize the argument parser
+    parser = argparse.ArgumentParser(description="Transliterate text using specified method.")
+    
+    # Add arguments
+    parser.add_argument('--input_path', type=str, required=True, help='Input path for the dataset to transliterate.')
+    parser.add_argument('--src_lang', type=str, required=True, help='Source language code.')
+    parser.add_argument('--batch_size', type=int, default=32, help='Batch size for processing.')
+    parser.add_argument('--cache_dir', type=str, default='.cache', help='Cache directory for storing temporary files.')
+    parser.add_argument('--output_path', type=str, required=True, help='Output directory for the transliterated dataset.')
+    parser.add_argument('--file_name', type=str, required=True, help='File name for the output JSON.')
+    parser.add_argument('--using_hugging_face', action='store_true', help='Flag to use Hugging Face for transliteration.')
 
-    if using_hugging_face:
+    # Parse arguments
+    args = parser.parse_args()
 
-        ds=transliterate_using_hugging_face(
-            input_path,
-            src_lang,
-            batch_size,
-            cache_dir
+    # Create output directory if it doesn't exist
+    os.makedirs(args.output_path, exist_ok=True)
+
+    if args.using_hugging_face:
+        # Transliterate using Hugging Face
+        ds = transliterate_using_hugging_face(
+            args.input_path,
+            args.src_lang,
+            args.batch_size,
+            args.cache_dir
         )
-
-        ds_to_json(ds,f'{output_path}/{file_name}.json')
+        # Save the dataset to JSON
+        ds_to_json(ds, f'{args.output_path}/{args.file_name}.json')
     else:
-        ds_dict=map_transliterate_words(input_path,src_lang)
-        save_dicts_as_json(f'{output_path}/{file_name}.json',dict_list)
+        # Transliterate using a custom mapping function
+        ds_dict = map_transliterate_words(args.input_path, args.src_lang)
+        # Save the dictionary to JSON
+        save_dicts_as_json(f'{args.output_path}/{args.file_name}.json', ds_dict)
 
         

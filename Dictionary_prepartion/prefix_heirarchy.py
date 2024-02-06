@@ -1,5 +1,4 @@
 from datasets import load_from_disk
-import json
 
 def create_prefix_hierarchy(dictionary, prefix_length):
     root = {}
@@ -35,8 +34,6 @@ def ds_to_json(ds, output_file_path,prefix=4):
             f.write('{"' + str(key) + '": "' + str(value) + '"}\n')
 
     return f"JSON file saved to {output_file_path}"
-
-
 
 
 
