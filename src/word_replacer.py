@@ -60,6 +60,20 @@ class WordReplacer:
         # Adjusted pattern to handle non-ASCII character word boundaries
         pattern = r'(?<!\w)(' + '|'.join(re.escape(key) for key in replacements.keys()) + r')(?!\w)'
         return re.sub(pattern, repl, text)
+
+    def find_indic(self,word):
+        pattern = r'[\u0900-\u097F\u0980-\u09FF\u0A00-\u0A7F\u0A80-\u0AFF\u0B00-\u0B7F\u0B80-\u0BFF\u0C00-\u0C7F\u0C80-\u0CFF\u0D00-\u0D7F\u0D80-\u0DFF\u0E00-\u0E7F\u0F00-\u0FFF]'
+        try:
+            match=re.search(pattern,word)
+            word_index = match.start()
+            if len(word[:word_index])< len(word)//2:
+                return 'prefix'
+            else:
+                return 'suffix'
+        except Exception as e:
+            print(f'There is no pattern')
+
+
     
     @staticmethod
     def filter_and_sort_dict(input_list, input_dict):
@@ -130,6 +144,12 @@ class WordReplacer:
                 
                 # Perform replacements if correction_dict is not empty
                 if correction_dict:
+
+                    correction_dict = {
+                        key: self.remove_english_words(key) + value if self.find_indic(key) == 'prefix' else value + self.remove_english_words(key)
+                        for key, value in correction_dict.items()
+                    }
+
                     try:
                         return self.multiple_replace(correction_dict, text, mode='correction')
                     except Exception as e:
@@ -193,4 +213,5 @@ class WordReplacer:
             return chunk
 
 if __name__=='__main__':
-    pass
+    a=WordReplacer('s')
+    print(a.find_indic('therivikkirathத'))

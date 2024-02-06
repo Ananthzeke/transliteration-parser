@@ -2,11 +2,12 @@ import argparse
 import glob
 from dictionary_loader import DictionaryLoader
 from word_replacer import WordReplacer
-from datasets import load_dataset
+from datasets import load_dataset,disable_caching
+# disable_caching()
 
 def apply_map(ds, column='translated', num_proc=4, batch_size=16):
     ds = ds.map(
-        lambda x: {column: wrd_replacer.replace_chunks(x[column])},
+        lambda x: {column:x[column],'transliterated': wrd_replacer.replace_chunks(x[column])},
         num_proc=num_proc,
         batched=True,
         batch_size=batch_size,
@@ -52,5 +53,6 @@ if __name__ == '__main__':
 
     new_ds = apply_map(ds, column, num_proc, batch_size)
 
-    new_ds.save_to_disk(output_path,num_proc=num_proc)
+    new_ds.to_csv('new.csv')
+    # new_ds.save_to_disk(output_path,num_proc=num_proc)
 
