@@ -1,6 +1,7 @@
 import os
 import json
 import glob
+import argparse
 from datasets import load_dataset,Dataset
 from ai4bharat.transliteration import XlitEngine
 from data_prepartion.prefix_heirarchy import ds_to_json
@@ -76,7 +77,6 @@ def transliterate_using_hugging_face(input_path,src_lang,batch_size,cache_dir):
     return ds
 
 if __name__=='__main__':
-if __name__ == '__main__':
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description="Transliterate text using specified method.")
     
