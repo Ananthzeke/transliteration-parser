@@ -3,7 +3,7 @@ import glob
 from dictionary_loader import DictionaryLoader
 from word_replacer import WordReplacer
 from datasets import load_dataset,disable_caching
-# disable_caching()
+disable_caching()
 
 def apply_map(ds, column='translated', num_proc=4, batch_size=16):
     ds = ds.map(

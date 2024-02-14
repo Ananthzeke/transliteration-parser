@@ -166,6 +166,8 @@ class WordReplacer:
 
     def get_dict(self,word):
         translated_word = self.dictionary_loader.get_translated_word(word)
+        # if isinstance(ast.literal_eval(translated_word.values()),dict):
+        #     translated_word=ast.literal_eval(translated_word.values())
         return translated_word
     
     def replace_chunks(self, chunk):
@@ -203,6 +205,7 @@ class WordReplacer:
             except ValueError as e:
                 raise ValueError(f"Error converting chunk back to original format: {e}")
             except SyntaxError as e:
+                print(chunk)
                 raise SyntaxError(f"Invalid syntax in chunk for literal evaluation: {e}")
             
             return chunk

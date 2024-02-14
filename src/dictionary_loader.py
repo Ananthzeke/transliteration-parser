@@ -36,9 +36,15 @@ class DictionaryLoader:
         with open(self.dictionary_path, 'r', encoding='utf-8') as file:
             for line in file:
                 entry = json.loads(line)
-                if prefix in entry:
-                    dictionary_entry = ast.literal_eval(entry[prefix])
-                    self.cache_dictionary_entry(prefix, dictionary_entry)  # Cache the found entry
+                if prefix in entry and isinstance(entry[prefix],str):
+                    try:
+                        dictionary_entry = ast.literal_eval(entry[prefix])
+                        self.cache_dictionary_entry(prefix, dictionary_entry)  # Cache the found entry
+                    except:pass
+                    break
+                if prefix in str(entry.keys()):
+                    dictionary_entry=entry
+                    self.cache_dictionary_entry(str(entry.keys())[:4],entry)
                     break
         
         if dictionary_entry is None:
