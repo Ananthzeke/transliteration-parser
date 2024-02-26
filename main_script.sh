@@ -4,8 +4,8 @@ python src/main.py \
     --dataset_path "data/tam/*" \
     --column "translated" \
     --num_proc 8 \
-    --batch_size 16 \
-    --sample_size 500 \
-    --output_path "data/tam_transliterated"
-    
-    
+    --batch_size 2 \
+    --sample_size 1000 \
+    --output_path "data/tam_transliterated" \
+    --file_type 'arrow' \
+    --replacer_type 'flashtext'
