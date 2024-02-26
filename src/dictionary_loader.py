@@ -40,12 +40,12 @@ class DictionaryLoader:
                     try:
                         dictionary_entry = ast.literal_eval(entry[prefix])
                         self.cache_dictionary_entry(prefix, dictionary_entry)  # Cache the found entry
-                    except:pass
-                    break
-                if prefix in str(entry.keys()):
-                    dictionary_entry=entry
-                    self.cache_dictionary_entry(str(entry.keys())[:4],entry)
-                    break
+                    except:
+                        break
+                # if prefix in str(entry.keys()):
+                #     dictionary_entry=entry
+                #     # self.cache_dictionary_entry(str(entry.keys())[:4],entry)
+                #     break
         
         if dictionary_entry is None:
             # If the entry is not found, log the missing word
@@ -113,5 +113,5 @@ class DictionaryLoader:
         pass
 
 if __name__=='__main__':
-    dl=DictionaryLoader('../data/tam.json')
-    print(type(dl.get_translated_word('தெரி')))
+    dl=DictionaryLoader('data/tam.json')
+    print((dl.get_translated_word('மற்றும்')))
