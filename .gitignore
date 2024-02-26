@@ -138,3 +138,14 @@ cython_debug/
 
 # JupyterLab
 .jupyterlab-config
+# Ignore folders starting with a dot
+.*
+
+# Ignore parquet files
+*.parquet
+
+# Ignore arrow and JSON files
+*.arrow
+*.json
+*.txt
+*.csv
