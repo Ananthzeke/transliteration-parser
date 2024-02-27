@@ -65,6 +65,6 @@ if __name__ == '__main__':
 
 
 
-    new_ds.to_csv('new.csv')
-    # new_ds.save_to_disk(output_path,num_proc=num_proc)
+    # new_ds.to_csv('new.csv')
+    new_ds.save_to_disk(output_path,num_proc=num_proc)
 

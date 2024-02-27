@@ -1,5 +1,7 @@
 from datasets import load_from_disk
 import json
+import argparse
+
 def create_prefix_hierarchy(dictionary, prefix_length):
     root = {}
     for word, transliteration in dictionary.items():
@@ -36,12 +38,22 @@ def json_to_jsonl(dictionary,output_file_path):
 
 
 if __name__=='__main__':
-    # Example usage
-    input_file_path = '/data/umashankar/transliteration/aksharantar_arrow/tam'
-    output_file_path = '/data/umashankar/transliteration/tam.json'
-    with open('data/corrected_tamil_transliterated_dict.json','r') as f:
-        data=json.load(f)
-    json_to_jsonl(data,'data/new_tam.json')
-    # ds=load_from_disk(input_file_path)
-    # result = ds_to_json(ds, output_file_path)
-    # print(result)
+    parser = argparse.ArgumentParser(description='Dictionary preparation for transliteration.')
+    parser.add_argument('--path_to_raw_dictionary', type=str, required=True, help='Path to the dictionary  file.')
+    parser.add_argument('--path_to_processed_dictionary', type=str, required=True, help='Output path  to the dictionary  file.')
+    parser.add_argument('--file_type', type=str, required=True,choices=['json','arrow'])
+    
+    args = parser.parse_args()
+    file_type=args.file_type
+    input_file_path = args.path_to_raw_dictionary
+    output_file_path = args.path_to_processed_dictionary
+    if file_type=='json':
+        with open('data/corrected_tamil_transliterated_dict.json','r') as f:
+            data=json.load(f)
+        json_to_jsonl(data,'data/new_tam.json')
+    elif file_type=='arrow':
+        ds=load_from_disk(input_file_path)
+        data = ds_to_json(ds, output_file_path)
+        json_to_jsonl(data)
+    else:
+        print('Invalid file format')
