@@ -21,6 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('--dictionary_path', type=str, required=True, help='Path to the dictionary JSON file.')
     parser.add_argument('--cache_dir', type=str, default=None,required=True, help='Cache directory for storing temporary files.')
     parser.add_argument('--dataset_path', type=str, required=True, help='Glob path for dataset files.')
+    parser.add_argument('--missing_log_path', type=str, required=True, help='Name for missing words text file')
     parser.add_argument('--file_type', type=str, required=True,choices=['csv','parquet','arrow'])
     parser.add_argument('--replacer_type', type=str, required=True,choices=['flashtext','wordreplacer'])
     parser.add_argument('--column', type=str, default='translated', help='Column to be processed.')
@@ -41,6 +42,7 @@ if __name__ == '__main__':
     output_path = args.output_path
     file_type=args.file_type
     replacer_type=args.replacer_type
+    missing_log_path=args.missing_log_path
     
     ds = load_dataset(
         file_type,
@@ -53,7 +55,7 @@ if __name__ == '__main__':
     else:
         ds=ds['train']
 
-    dct_loader = DictionaryLoader(dictionary_path)
+    dct_loader = DictionaryLoader(dictionary_path,missing_log_path=missing_log_path)
     if replacer_type.lower()=='wordreplacer':
         wrd_replacer = WordReplacer(dct_loader)
         new_ds = apply_map(ds,wrd_replacer.replace_chunks,column,num_proc, batch_size)
