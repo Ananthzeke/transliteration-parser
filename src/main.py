@@ -4,6 +4,8 @@ from dictionary_loader import DictionaryLoader
 from word_replacer import WordReplacer
 from using_flashtext import FlashReplacer
 from datasets import load_dataset,disable_caching
+import os
+
 disable_caching()
 
 def apply_map(ds,replacer_func, column='translated', num_proc=4, batch_size=16):
@@ -15,6 +17,17 @@ def apply_map(ds,replacer_func, column='translated', num_proc=4, batch_size=16):
         remove_columns=ds.column_names
     )
     return ds
+
+def create_dir_if_not_exists(file_path):
+    """Checks if the directory containing a file exists and creates it if it doesn't.
+
+    Args:
+        file_path (str): The path to the file, including its directory.
+    """
+    directory = os.path.dirname(file_path)  # Extract the directory path from the file path
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        print(f"Directory '{directory}' created")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process dataset for transliteration.')
@@ -43,7 +56,7 @@ if __name__ == '__main__':
     file_type=args.file_type
     replacer_type=args.replacer_type
     missing_log_path=args.missing_log_path
-    
+    create_dir_if_not_exists(missing_log_path)
     ds = load_dataset(
         file_type,
         data_files=dataset_path,

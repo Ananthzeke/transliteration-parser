@@ -14,7 +14,6 @@ class DictionaryLoader:
         :param dictionary_path: Path to the .jsonl dictionary file.
         :param cache_size: Maximum number of dictionary entries to keep in cache.
         """
-        os.makedirs(os.path.dirname(missing_log_path),exist_ok=True)
         self.dictionary_path = dictionary_path
         self.cache_size = cache_size
         self.cache = OrderedDict()  # Cache for frequently accessed dictionary entries
@@ -44,10 +43,7 @@ class DictionaryLoader:
                         self.cache_dictionary_entry(prefix, dictionary_entry)  # Cache the found entry
                     except:
                         break
-                # if prefix in str(entry.keys()):
-                #     dictionary_entry=entry
-                #     # self.cache_dictionary_entry(str(entry.keys())[:4],entry)
-                #     break
+
         
         if dictionary_entry is None:
             # If the entry is not found, log the missing word
@@ -105,15 +101,7 @@ class DictionaryLoader:
         return word
     
 
-    
-    def preload_cache(self, prefixes):
-        """
-        Preloads cache with dictionary entries for a list of prefixes to minimize disk reads.
-
-        :param prefixes: A list of prefixes to preload into the cache.
-        """
-        pass
 
 if __name__=='__main__':
-    dl=DictionaryLoader('data/tam.json')
-    print((dl.get_translated_word('மற்றும்')))
+    dct=DictionaryLoader('/home/ananth/Ai4bharat/transliteration/data/tam.json')
+    print(dct.get_translated_word('ஆவிய'))
