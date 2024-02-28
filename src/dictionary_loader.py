@@ -1,3 +1,4 @@
+import os
 import ast
 import json
 import threading
@@ -13,6 +14,7 @@ class DictionaryLoader:
         :param dictionary_path: Path to the .jsonl dictionary file.
         :param cache_size: Maximum number of dictionary entries to keep in cache.
         """
+        os.makedirs(os.path.dirname(missing_log_path),exist_ok=True)
         self.dictionary_path = dictionary_path
         self.cache_size = cache_size
         self.cache = OrderedDict()  # Cache for frequently accessed dictionary entries

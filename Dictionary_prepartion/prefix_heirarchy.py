@@ -40,20 +40,20 @@ def json_to_jsonl(dictionary,output_file_path):
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Dictionary preparation for transliteration.')
     parser.add_argument('--path_to_raw_dictionary', type=str, required=True, help='Path to the dictionary  file.')
-    parser.add_argument('--path_to_processed_dictionary', type=str, required=True, help='Output path  to the dictionary  file.')
+    parser.add_argument('--path_to_save_processed_dictionary', type=str, required=True, help='Output path  to the dictionary  file.')
     parser.add_argument('--file_type', type=str, required=True,choices=['json','arrow'])
     
     args = parser.parse_args()
     file_type=args.file_type
     input_file_path = args.path_to_raw_dictionary
-    output_file_path = args.path_to_processed_dictionary
+    output_file_path = args.path_to_save_processed_dictionary
     if file_type=='json':
         with open('data/corrected_tamil_transliterated_dict.json','r') as f:
             data=json.load(f)
-        json_to_jsonl(data,'data/new_tam.json')
+        json_to_jsonl(data, output_file_path)
     elif file_type=='arrow':
         ds=load_from_disk(input_file_path)
-        data = ds_to_json(ds, output_file_path)
-        json_to_jsonl(data)
+        data = ds_to_json(ds)
+        json_to_jsonl(data, output_file_path)
     else:
         print('Invalid file format')
