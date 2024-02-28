@@ -6,7 +6,7 @@ from collections import OrderedDict
 
 
 class DictionaryLoader:
-    def __init__(self, dictionary_path, cache_size=10000,missing_log_path='missing_words.txt'):
+    def __init__(self, dictionary_path, cache_size=10000,missing_log_path='missing_words.txt',prefix_length=4):
         """
         Initializes the Dictionary Loader with a path to the .jsonl dictionary file,
         and sets up caching mechanisms and a file for logging missing words/prefixes.
@@ -19,7 +19,7 @@ class DictionaryLoader:
         self.cache = OrderedDict()  # Cache for frequently accessed dictionary entries
         self.missing_log_path = missing_log_path  # File to log missing words/prefixes
         self.missing_log_lock = threading.Lock()
-    
+        self.prefix_length=prefix_length
     def load_dictionary_entry(self, prefix):
         """
         Loads the dictionary entry for a given prefix from the cache or the .jsonl file.
@@ -89,7 +89,7 @@ class DictionaryLoader:
         :param word: The word to translate.
         :return: The translated word or the original word if a translation is not found.
         """
-        prefix = word.strip()[:4] if len(word)>4 else word.strip()
+        prefix = word.strip()[:self.prefix_length] if len(word)>self.prefix_length else word.strip()
         if prefix in self.cache:
             prefix_dict = self.cache[prefix]
             return prefix_dict
