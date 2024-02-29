@@ -1,20 +1,19 @@
 from flashtext import KeywordProcessor
-import regex
-import re
+import re,regex
 from dictionary_loader import DictionaryLoader
 from functools import lru_cache
 class FlashReplacer:
     def __init__(self,dict_loader):
         self.kw_processor=KeywordProcessor()
         self.dict_loader=dict_loader
-        self.english_pattern=r'[A-Za-z]+'
-        self.non_romanized_pattern = re.compile(r'[\p{Z}\p{P}\p{S}\p{N}]+', re.UNICODE)
+        self.english_pattern=re.compile(r'[A-Za-z]+')
+        self.non_romanized_pattern = regex.compile(r'[\p{Z}\p{P}\p{S}\p{N}]+')
         self.mixed_word_pattern = re.compile(r'[A-Za-z]')
         self.allowed_mixed_word_pattern = re.compile(r'^[a-zA-Z0-9\s.,\'"!?]+$')
 
-    @staticmethod
-    def remove_english_words(s):
-        return FlashReplacer.english_pattern.sub('', s)
+    
+    def remove_english_words(self,s):
+        return self.english_pattern.sub('', s)
     
     def split_non_romanized_string(self, text):
             words = [word.strip() for word in self.non_romanized_pattern.split(text) if self.remove_english_words(word)]
@@ -59,8 +58,6 @@ class FlashReplacer:
                 if not isinstance(value,dict):
                     self.kw_processor.add_keyword(key,value)
                 elif not isinstance(value,str):
-                    # for new_key,new_value in value.items():
-                    #     self.kw_processor.add_keyword(new_key,new_value)
                     self.using_flashtext_multi_replace(value,text,mode='raw')
                 else:
                     print(f'Failing on raw mode')
@@ -123,6 +120,7 @@ class FlashReplacer:
         elif mode=='space':
             fixed_batch=transliterated_batch
         return fixed_batch
+
 if __name__=='__main__':
 
 
