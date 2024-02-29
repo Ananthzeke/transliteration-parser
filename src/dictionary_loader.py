@@ -37,11 +37,17 @@ class DictionaryLoader:
         with open(self.dictionary_path, 'r', encoding='utf-8') as file:
             for line in file:
                 entry = json.loads(line)
-                if prefix in entry and isinstance(entry[prefix],str):
+ 
+                if prefix in entry and isinstance(entry[prefix],dict):
+                    dictionary_entry=entry
+                    self.cache_dictionary_entry(prefix, dictionary_entry)
+
+                elif prefix in entry and isinstance(entry[prefix],str):
                     try:
                         dictionary_entry = ast.literal_eval(entry[prefix])
                         self.cache_dictionary_entry(prefix, dictionary_entry)  # Cache the found entry
-                    except:
+                    except Exception as e:
+                        print(f"{e} for string : {entry}")
                         break
 
         
@@ -103,5 +109,5 @@ class DictionaryLoader:
 
 
 if __name__=='__main__':
-    dct=DictionaryLoader('/home/ananth/Ai4bharat/transliteration/data/tam.json')
-    print(dct.get_translated_word('ஆவிய'))
+    dct=DictionaryLoader('/home/indic-llm/transliteration-parser/dictionaries/tam.json')
+    print(dct.get_translated_word('அருந'))

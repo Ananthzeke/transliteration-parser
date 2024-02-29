@@ -8,9 +8,9 @@ import os
 
 disable_caching()
 
-def apply_map(ds,replacer_func, column='translated', num_proc=4, batch_size=16):
+def apply_map(ds,replacer_func,replacer_mode, column='translated', num_proc=4, batch_size=16):
     ds = ds.map(
-        lambda x: {column:x[column],'transliterated':replacer_func(x[column])},
+        lambda x: {column:x[column],'transliterated':replacer_func(x[column],replacer_mode)},
         num_proc=num_proc,
         batched=True,
         batch_size=batch_size,
@@ -37,6 +37,7 @@ if __name__ == '__main__':
     parser.add_argument('--missing_log_path', type=str, required=True, help='Name for missing words text file')
     parser.add_argument('--file_type', type=str, required=True,choices=['csv','parquet','arrow'])
     parser.add_argument('--replacer_type', type=str, required=True,choices=['flashtext','wordreplacer'])
+    parser.add_argument('--replacer_mode', type=str, required=False,choices=['space','raw'])
     parser.add_argument('--column', type=str, default='translated', help='Column to be processed.')
     parser.add_argument('--num_proc', type=int, default=4, help='Number of processes to use.')
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size for processing.')
@@ -56,7 +57,9 @@ if __name__ == '__main__':
     file_type=args.file_type
     replacer_type=args.replacer_type
     missing_log_path=args.missing_log_path
+    replacer_mode=args.replacer_mode
     create_dir_if_not_exists(missing_log_path)
+    print(args.dataset_path)
     ds = load_dataset(
         file_type,
         data_files=dataset_path,
@@ -74,10 +77,15 @@ if __name__ == '__main__':
         new_ds = apply_map(ds,wrd_replacer.replace_chunks,column,num_proc, batch_size)
     elif replacer_type.lower()=='flashtext':
         flash_replacer=FlashReplacer(dct_loader)
-        new_ds = apply_map(ds,flash_replacer.replace_chunks_of_text,column,num_proc, batch_size)
+        if not replacer_mode:
+            replacer_mode='raw'
+
+        new_ds = apply_map(ds,flash_replacer.replace_chunks_of_text,replacer_mode,column,num_proc, batch_size)
 
 
 
-    # new_ds.to_csv('new.csv')
-    new_ds.save_to_disk(output_path,num_proc=num_proc)
-
+    new_ds.to_csv('new.csv')
+    if new_ds.num_rows//2>num_proc:
+        new_ds.save_to_disk(output_path,num_proc=num_proc)
+    else:
+        new_ds.save_to_disk(output_path)

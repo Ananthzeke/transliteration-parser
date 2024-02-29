@@ -7,34 +7,26 @@ class FlashReplacer:
     def __init__(self,dict_loader):
         self.kw_processor=KeywordProcessor()
         self.dict_loader=dict_loader
+        self.english_pattern=r'[A-Za-z]+'
+        self.non_romanized_pattern = re.compile(r'[\p{Z}\p{P}\p{S}\p{N}]+', re.UNICODE)
+        self.mixed_word_pattern = re.compile(r'[A-Za-z]')
+        self.allowed_mixed_word_pattern = re.compile(r'^[a-zA-Z0-9\s.,\'"!?]+$')
 
     @staticmethod
     def remove_english_words(s):
-        # Regular expression pattern to match English words
-        pattern = r'[A-Za-z]+'
-        # Replace English words with an empty string
-        return re.sub(pattern, '', s)   
+        return FlashReplacer.english_pattern.sub('', s)
     
-    @staticmethod
-    def split_non_romanized_string(text):
-        pattern = r'[\p{Z}\p{P}\p{S}\p{N}]+'
-        words=[word.strip() for word in regex.split(pattern, text) if FlashReplacer.remove_english_words(word)]
-        return words
+    def split_non_romanized_string(self, text):
+            words = [word.strip() for word in self.non_romanized_pattern.split(text) if self.remove_english_words(word)]
+            return words
     
-    @staticmethod
-    def mixed_words(text):
-        """
-        Returns a set of words from 'text' that contain English letters but don't match a specified pattern.
-        """
-        english_pattern = re.compile(r'[A-Za-z]')
-        allowed_pattern = re.compile(r'^[a-zA-Z0-9\s.,\'"!?]+$')
-        if not isinstance(text, str):
-            raise ValueError("Input must be a string.")
+    def mixed_words(self, text):
+            if not isinstance(text, str):
+                raise ValueError("Input must be a string.")
+            words = text.split(' ')
+            return {
+                word for word in words if self.mixed_word_pattern.search(word) and not self.allowed_mixed_word_pattern.match(word)}
 
-        words = text.split(' ')
-        filtered_words = {word for word in words 
-                        if english_pattern.search(word) and not allowed_pattern.match(word)}
-        return filtered_words
 
 
     def fix_mixed_words(self,org_text,transliterated_text):
@@ -50,38 +42,40 @@ class FlashReplacer:
         A string where specific words identified by mixed_words() in transliterated_text
         are replaced with their counterparts from org_text.
         """
-        org_text_list=org_text.split(' ')
-        transliterated_text_list=transliterated_text.split(' ')
-        mixed_words=self.mixed_words(transliterated_text)
-        text=transliterated_text
+        org_text_list = org_text.split(' ')
+        transliterated_text_list = transliterated_text.split(' ')
+        mixed_words = self.mixed_words(transliterated_text)
         if mixed_words:
             try:
-                mixed_to_org_words={word:org_text_list[transliterated_text_list.index(word)] 
-                                    for word in mixed_words }
-                regex = re.compile("(%s)" % "|".join(map(re.escape, mixed_to_org_words.keys())))
-                text=regex.sub(lambda mo: mixed_to_org_words[mo.group()], transliterated_text)
+                mixed_to_org_words = {word: org_text_list[transliterated_text_list.index(word)] for word in mixed_words}
+                return re.sub("|".join(map(re.escape, mixed_to_org_words.keys())), lambda mo: mixed_to_org_words[mo.group()], transliterated_text)
             except Exception as e:
-                print('Failed on mixed words replacement ')
-                # print(f'mixed_words: {mixed_words}\n')
-                # print(f'transliterated_text_list: {transliterated_text_list}\n')
-                
-        return text
-
+                print('Failed on mixed words replacement')
+        return transliterated_text
  
-    
-    def using_flashtext_multi_replace(cls,replacements,text,mode='raw'):
+    def using_flashtext_multi_replace(self,replacements,text,mode='raw'):
         if mode=='raw':
             for key,value in replacements.items():
                 if not isinstance(value,dict):
-                    cls.kw_processor.add_keyword(key,value)
+                    self.kw_processor.add_keyword(key,value)
+                elif not isinstance(value,str):
+                    # for new_key,new_value in value.items():
+                    #     self.kw_processor.add_keyword(new_key,new_value)
+                    self.using_flashtext_multi_replace(value,text,mode='raw')
                 else:
-                    print(len(key))
+                    print(f'Failing on raw mode')
 
         elif mode=='space':
             for key,value in replacements.items():
-                cls.kw_processor.add_keyword(f' {key} ',f' {value} ')
+                if not isinstance(value,dict):
+                    self.kw_processor.add_keyword(f' {key} ',f' {value} ')
+                elif not isinstance(value,str):
+                    self.using_flashtext_multi_replace(value,text,mode='space')
+                else:
+                    print(f'Failing on Space mode')
+
     
-        text=cls.kw_processor.replace_keywords(' '+text+' ').strip()
+        text=self.kw_processor.replace_keywords(' '+text+' ').strip()
         return text
     
     @lru_cache(maxsize=1024)           
@@ -121,16 +115,18 @@ class FlashReplacer:
                     ]
             except Exception as e:
                 raise ValueError(f"Error replacing words in batch: {e}")
-        fixed_batch = [
-            self.fix_mixed_words(org_string, transliterated_string)
-            for org_string, transliterated_string in zip(batch, transliterated_batch)
-        ]
-
+        if mode=='raw':
+            fixed_batch = [
+                self.fix_mixed_words(org_string, transliterated_string)
+                for org_string, transliterated_string in zip(batch, transliterated_batch)
+            ]
+        elif mode=='space':
+            fixed_batch=transliterated_batch
         return fixed_batch
 if __name__=='__main__':
 
 
-    dct_loader= DictionaryLoader('data/tam.json')
+    dct_loader= DictionaryLoader('dictionaries/tam.json')
     flash=FlashReplacer(dct_loader)
     text='''goopal parathamaின் pinnani matrum thanipatta vaazhkkai patrri melum sollungkal.\n" goopal paratham septumber 9,1935 அன்று singappooril ஒரு marudhuvar thandhai matrum ஒரு seviliyar thaaikகு piranthaar. avarathu ilamai japaniya aakkiramippin anubavaththaal kurikkappattathu. அவர் thanadhu pettroarin adichchuvadugalaip பின்parra mudivu seithu maruththuvath tholilil nuzhinththaar. paratham thanadhu maruththuva vaazhkkai muzhuvathum ezhuthuvathai orupoathum nirutthavillai, melum avarathu muthal sirukadhai, ""diu"", 1974 ஆம் aandil singapure samoogaththin thaesiya palkalaikkazhagaththin veliyeedaana varnanaiyil veliyidappattadhu.\n, thaகு '''
     # print(filter_non_english_numeric_symbols(text))

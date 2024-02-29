@@ -1,11 +1,16 @@
+
+tgt_lang='tam'
+
 python src/main.py \
-    --dictionary_path "data/tam.json" \
+    --dictionary_path "dictionaries/${tgt_lang}.json" \
     --cache_dir ".cache" \
-    --dataset_path "data/tam/*" \
+    --dataset_path "datasets/${tgt_lang}*/*_final_output/*arrow" \
     --column "translated" \
-    --num_proc 8 \
-    --batch_size 2 \
-    --sample_size 1000 \
-    --output_path "data/tam_transliterated" \
+    --num_proc 32 \
+    --batch_size 10 \
+    --output_path "data/${tgt_lang}_transliterated" \
     --file_type 'arrow' \
-    --replacer_type 'flashtext'
+    --replacer_type 'flashtext' \
+    --replacer_mode 'raw' \
+    --missing_log_path "missing_dict/${tgt_lang}.txt"
+    # --sample_size 10 \
