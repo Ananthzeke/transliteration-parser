@@ -72,9 +72,10 @@ class FlashReplacer:
                     print(f'Failing on Space mode')
 
         try:    
-		text=self.kw_processor.replace_keywords(' '+text+' ').strip()
-	except Exception as e:
-		text=text
+            text=self.kw_processor.replace_keywords(' '+text+' ').strip()
+        except Exception as e:
+            text=text
+            
         return text
     
     @lru_cache(maxsize=1024)           

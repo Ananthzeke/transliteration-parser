@@ -3,6 +3,7 @@ import glob
 from dictionary_loader import DictionaryLoader
 from word_replacer import WordReplacer
 from using_flashtext import FlashReplacer
+from MemoryWordReplacer import MemoryWordReplacer,load_json_as_dict
 from datasets import load_dataset,disable_caching
 import os
 
@@ -14,7 +15,7 @@ def apply_map(ds,replacer_func,replacer_mode, column='translated', num_proc=4, b
         num_proc=num_proc,
         batched=True,
         batch_size=batch_size,
-        remove_columns=ds.column_names
+        # remove_columns=ds.column_names
     )
     return ds
 
@@ -36,7 +37,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_path', type=str, required=True, help='Glob path for dataset files.')
     parser.add_argument('--missing_log_path', type=str, required=True, help='Name for missing words text file')
     parser.add_argument('--file_type', type=str, required=True,choices=['csv','parquet','arrow'])
-    parser.add_argument('--replacer_type', type=str, required=True,choices=['flashtext','wordreplacer'])
+    parser.add_argument('--replacer_type', type=str, required=True,choices=['flashtext','wordreplacer','memory_replacer'])
     parser.add_argument('--replacer_mode', type=str, required=False,choices=['space','raw'])
     parser.add_argument('--column', type=str, default='translated', help='Column to be processed.')
     parser.add_argument('--num_proc', type=int, default=4, help='Number of processes to use.')
@@ -59,11 +60,11 @@ if __name__ == '__main__':
     missing_log_path=args.missing_log_path
     replacer_mode=args.replacer_mode
     create_dir_if_not_exists(missing_log_path)
-    print(args.dataset_path)
+    print(dataset_path)
     ds = load_dataset(
         file_type,
         data_files=dataset_path,
-        cache_dir=cache_dir
+        cache_dir=cache_dir,
     )
 
     if sample_size:
@@ -79,12 +80,24 @@ if __name__ == '__main__':
         flash_replacer=FlashReplacer(dct_loader)
         if not replacer_mode:
             replacer_mode='raw'
-
         new_ds = apply_map(ds,flash_replacer.replace_chunks_of_text,replacer_mode,column,num_proc, batch_size)
+    elif  replacer_type.lower()=='memory_replacer':
+        # dictionary=load_json_as_dict(dictionary_path)
+        dictionary={'கோபால்':'gopal','மற்றும்':'matrum'}
+        mem_replacer=MemoryWordReplacer(dictionary)
+        def post_process(batch):
+            output=mem_replacer.replace_batches(batch)
+            return {'transliterated':output[0],'missing_words':output[1]}
+        new_ds=ds.map(lambda x :post_process(x['translated']),
+                  batched=True,batch_size=batch_size,
+                  num_proc=num_proc,
+                  remove_columns=ds.column_names.remove('doc_id')
+                  )
+        df=new_ds.to_pandas()['missing_words'].explode().drop_duplicates()
+        df.to_csv(f'{missing_log_path.split('.')[0]}.csv',index=False)
+        
 
-
-
-    new_ds.to_csv('new.csv')
+    # new_ds.to_csv('new.csv')
     if new_ds.num_rows//2>num_proc:
         new_ds.save_to_disk(output_path,num_proc=num_proc)
     else:
