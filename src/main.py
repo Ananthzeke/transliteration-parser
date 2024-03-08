@@ -44,6 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size for processing.')
     parser.add_argument('--sample_size', type=int, help='Sample size to select from dataset.')
     parser.add_argument('--output_path', type=str, required=True, help='Output path for the processed dataset.')
+    parser.add_argument('--src_lang', type=str, required=False, help='Source language of the text')
 
     args = parser.parse_args()
 
@@ -59,14 +60,13 @@ if __name__ == '__main__':
     replacer_type=args.replacer_type
     missing_log_path=args.missing_log_path
     replacer_mode=args.replacer_mode
+    src_lang=args.src_lang
     create_dir_if_not_exists(missing_log_path)
-    print(dataset_path)
     ds = load_dataset(
         file_type,
         data_files=dataset_path,
         cache_dir=cache_dir,
     )
-
     if sample_size:
         ds = ds['train'].select(range(sample_size))
     else:
@@ -82,23 +82,27 @@ if __name__ == '__main__':
             replacer_mode='raw'
         new_ds = apply_map(ds,flash_replacer.replace_chunks_of_text,replacer_mode,column,num_proc, batch_size)
     elif  replacer_type.lower()=='memory_replacer':
-        # dictionary=load_json_as_dict(dictionary_path)
-        dictionary={'கோபால்':'gopal','மற்றும்':'matrum'}
-        mem_replacer=MemoryWordReplacer(dictionary)
+        dictionary=load_json_as_dict(dictionary_path)
+        mem_replacer=MemoryWordReplacer(dictionary,src_lang)
+        columns=ds.column_names
+        columns.remove('doc_id')
+        columns.remove('translated')
         def post_process(batch):
             output=mem_replacer.replace_batches(batch)
-            return {'transliterated':output[0],'missing_words':output[1]}
+            return {'translated':output[0],'missing_words':output[1]}
+
         new_ds=ds.map(lambda x :post_process(x['translated']),
                   batched=True,batch_size=batch_size,
                   num_proc=num_proc,
-                  remove_columns=ds.column_names.remove('doc_id')
+                  remove_columns=columns
                   )
+        missing_log_dir = os.path.dirname(missing_log_path)
+        os.makedirs(missing_log_dir, exist_ok=True) 
         df=new_ds.to_pandas()['missing_words'].explode().drop_duplicates()
-        df.to_csv(f'{missing_log_path.split('.')[0]}.csv',index=False)
-        
+        df.to_csv(f'{missing_log_path.split(".")[0]}.csv',index=False)
 
-    # new_ds.to_csv('new.csv')
-    if new_ds.num_rows//2>num_proc:
-        new_ds.save_to_disk(output_path,num_proc=num_proc)
+    # new_ds.to_csv('mem_tam.csv')
+    if new_ds.num_rows//2>num_proc and num_proc>=40:
+        new_ds.save_to_disk(output_path,num_proc=40)
     else:
         new_ds.save_to_disk(output_path)

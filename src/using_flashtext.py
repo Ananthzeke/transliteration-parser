@@ -127,7 +127,7 @@ class FlashReplacer:
 if __name__=='__main__':
 
 
-    dct_loader= DictionaryLoader('dictionaries/tam.json')
+    dct_loader= DictionaryLoader('dictionaries/variations.json')
     flash=FlashReplacer(dct_loader)
     text='''goopal parathamaின் pinnani matrum thanipatta vaazhkkai patrri melum sollungkal.\n" goopal paratham septumber 9,1935 அன்று singappooril ஒரு marudhuvar thandhai matrum ஒரு seviliyar thaaikகு piranthaar. avarathu ilamai japaniya aakkiramippin anubavaththaal kurikkappattathu. அவர் thanadhu pettroarin adichchuvadugalaip பின்parra mudivu seithu maruththuvath tholilil nuzhinththaar. paratham thanadhu maruththuva vaazhkkai muzhuvathum ezhuthuvathai orupoathum nirutthavillai, melum avarathu muthal sirukadhai, ""diu"", 1974 ஆம் aandil singapure samoogaththin thaesiya palkalaikkazhagaththin veliyeedaana varnanaiyil veliyidappattadhu.\n, thaகு '''
     # print(filter_non_english_numeric_symbols(text))
