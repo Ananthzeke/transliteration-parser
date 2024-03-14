@@ -6,13 +6,14 @@ from flashtext import KeywordProcessor
 
 class MemoryWordReplacer:
     def __init__(self,dictionary:dict,src_lang:str):
-        self.dictionary=dictionary
+        self.dictionary=cleaned_dict = {key: value for key, value in dictionary.items() if value is not None and not isinstance(value, list)}
         self.kw_processor=KeywordProcessor()
         [self.kw_processor.add_keyword(key,value) for key,value in self.dictionary.items()]
         self.english_pattern=re.compile(r'[A-Za-z+]')
         self.non_romanized_pattern = regex.compile(r'[\p{Z}\p{P}\p{S}\p{N}]+')
         self.mixed_word_pattern = re.compile(r'[A-Za-z]')
         self.allowed_mixed_word_pattern = re.compile(r'^[a-zA-Z0-9\s.,\'"!?]+$')
+        self.regex_replacer=re.compile(r'(?<!\w)(' + '|'.join(re.escape(key) for key in self.dictionary.keys()) + r')(?!\w)')
         self.src_lang=src_lang
         self.indic_script_patterns={
         "Arab": re.compile(r"[\u0600-\u06FF]"),
@@ -138,11 +139,35 @@ class MemoryWordReplacer:
         text=f" {text} "
         # Create a regular expression from the dictionary keys with spaces
         try:
+
+            if self.src_lang.split('_')[1] == "Deva":
+                # pass
+                pattern =  r"।(\s|$)"
+                replacement = r" . \1"
+                text=re.sub(pattern, replacement, text)
+                pattern_universal = r"।"
+                replacement = " . "
+                text=re.sub(pattern_universal, replacement, text)
+            # if self.src_lang.split('_')[1] =="Arab":
+            #     pattern_universal = r"।"
+            #     replacement = "."
+            #     text=re.sub(pattern_universal, replacement, text)
+                pass
+
             text=self.kw_processor.replace_keywords(text)
         except Exception as e:
-            print(e)
+            print(e,'trying regex replacer')
+            text=self.regex_replacer.sub(lambda x: self.dictionary[x.group()], text)
         return text.strip()
-
+    
+    def find(self,text):
+        pattern = r'\b\w*\d\w*\b'
+        # Filter words with at least one number
+        words_with_numbers = re.findall(pattern, text)
+        # Remove English letters and numbers
+        cleaned_words = [re.sub(r'[a-zA-Z\d]', '', word) for word in words_with_numbers]
+        final_list = [word.replace('"','').replace('(','').replace(')','').replace(',','') for word in cleaned_words if word!='']
+        return final_list 
 
     
     def replace_batches(self,batch,use_placeholder=True):
@@ -160,24 +185,42 @@ class MemoryWordReplacer:
                         self.fix_mixed_words(org_string, transliterated_string)
                         for org_string, transliterated_string in zip(batch, transliterated_batch)
                     ]
-                missing_words=[[].append('') if self.extract_script_words(sent)==[] else self.extract_script_words(sent) 
-                for sent in fixed_batch ]
+                # missing_words=[[].append('') if self.extract_script_words(sent)==[] else self.extract_script_words(sent) 
+                # for sent in fixed_batch ]
 
-                # print(flen(fixed_batch))
-                # print(len(missing_words))
-                # print(o)
-                return fixed_batch,missing_words
+
+                refix=''
+                untransliterated_words=self.find(placeholder.join(fixed_batch))
+                # print(untransliterated_words)
+                for word in untransliterated_words:
+                    if word in self.dictionary.keys():
+                        refix=placeholder.join(fixed_batch).replace(word,self.dictionary[word])
+                if refix:
+                    fixed_batch=refix.split(placeholder)
+
+                missing_words=[self.extract_script_words(sent) for sent in fixed_batch]
+                missing_words_new=[[].append('') if words ==[] else words for words in missing_words ]
+                if missing_words:
+                    script_name=self.src_lang.split('_')[1]
+                    fixed_batch=[self.indic_script_patterns[script_name].sub('',sent) for sent in fixed_batch]
+                    # print(fixed_batch)
+                return fixed_batch,missing_words_new
             else:
                 print('Failed on transliteration returning Orginal text')
+                missing_words=[[].append('') if self.extract_script_words(sent)==[] else self.extract_script_words(sent) 
+                for sent in batch ]
             return batch, [[]]
         else:
             print(f'Dictionary is None')    
             return batch, [[]]
 
+
+
 def load_json_as_dict(file_path):
     try:
         with open(file_path, 'r') as file:
             data = json.load(file)
+
             return data
     except FileNotFoundError:
         print("The file was not found.")

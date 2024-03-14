@@ -7,7 +7,17 @@ from MemoryWordReplacer import MemoryWordReplacer,load_json_as_dict
 from datasets import load_dataset,disable_caching
 import os
 
+
 disable_caching()
+
+def remove_english_and_mixed_words(lst):
+    # Pattern to match words that do not consist solely of non-English characters (i.e., removing words with any part of English alphabets or fully English words)
+    pattern = re.compile(r'^[^a-zA-Z]*$')
+    
+    # Filter the list, removing items that do not match the pattern (i.e., containing any English letters or purely English words)
+    filtered_list = [item for item in lst if pattern.match(item)]
+    
+    return filtered_list
 
 def apply_map(ds,replacer_func,replacer_mode, column='translated', num_proc=4, batch_size=16):
     ds = ds.map(
@@ -62,7 +72,6 @@ if __name__ == '__main__':
     replacer_mode=args.replacer_mode
     src_lang=args.src_lang
     create_dir_if_not_exists(missing_log_path)
-    # print(dataset_path)
     ds = load_dataset(
         file_type,
         data_files=dataset_path,
@@ -91,17 +100,12 @@ if __name__ == '__main__':
         def post_process(batch):
             output=mem_replacer.replace_batches(batch)
             missing_words_processed = [[''] if words is None else words for words in output[1]]
-            if len(batch)==len(output[0]):
-                transliterated=output[0]
-            else:
-                # print(batch)
-                transliterated=batch
             # print("Translated:", type(output[0]), "Example:", output[0][:1])
             # print("Missing Words:", type(output[1]), "Example:", output[1][:1])
-            return {'transliterated':transliterated,'missing_words':missing_words_processed}
+            return {'transliterated':output[0],'missing_words':missing_words_processed}
 
 
-        new_ds=ds.map(lambda x :post_process(x['translated']),
+        new_ds=ds.map(lambda x :post_process(x['transliterated']),
                   batched=True,batch_size=batch_size,
                   num_proc=num_proc,
                   remove_columns=columns
